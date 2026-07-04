@@ -1,0 +1,26 @@
+# Veri dosyaları (ham veri repoya konmaz)
+data/*.csv
+data/*.xlsx
+*.csv
+!requirements.txt
+
+# Jupyter Notebook checkpoint'leri
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# İşletim sistemi dosyaları
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editör dosyaları
+.vscode/
+.idea/
