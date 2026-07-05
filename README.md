@@ -1,6 +1,6 @@
 # Türkiye Saatlik Elektrik Tüketim Tahmini
 
-Türkiye'nin ülke geneli saatlik elektrik tüketimini, geçmiş tüketim verisi ve hava sıcaklığı bilgisiyle tahmin eden bir makine öğrenmesi projesi. Model, LightGBM ile kurulmuş olup test setinde **%1.66 MAPE** ve **0.977 R²** başarıya ulaşmaktadır.
+Türkiye'nin ülke geneli saatlik elektrik tüketimini; geçmiş tüketim verisi, hava sıcaklığı ve resmi tatil bilgisiyle tahmin eden bir makine öğrenmesi projesi. Model, LightGBM ile kurulmuş olup test setinde **%1.62 MAPE** ve **0.979 R²** başarıya ulaşmaktadır. Ayrıca modelle etkileşimli bir **Streamlit demo** uygulaması içerir.
 
 ## İçindekiler
 - [Problem](#problem)
@@ -35,9 +35,9 @@ Proje uçtan uca şu adımlardan oluşur:
    - 2016 yaz saati geçişinden (27 Mart 2016) kaynaklanan bir eksik ve bir sıfır değer tespit edilip zaman bazlı interpolasyonla düzeltildi.
    - Sonuç: tekrarsız, eksiksiz, kesintisiz saatlik seri.
 3. **Keşifçi veri analizi (EDA):** Trend, mevsimsellik (yıllık/haftalık/günlük) ve korelasyon incelendi.
-4. **Özellik mühendisliği:** Gecikme (lag), hareketli ortalama (rolling), döngüsel zaman kodlaması ve sıcaklık özellikleri üretildi.
+4. **Özellik mühendisliği:** Gecikme (lag), hareketli ortalama (rolling), döngüsel zaman kodlaması, sıcaklık ve resmi tatil özellikleri üretildi.
 5. **Modelleme:** LightGBM ile, zamana göre bölünmüş (kronolojik) train/test setleri üzerinde eğitim ve değerlendirme.
-6. **İyileştirme:** Sıcaklık verisi eklenerek ve hiperparametre ayarı yapılarak model geliştirildi.
+6. **İyileştirme:** Sıcaklık verisi ve resmi tatil bilgisi eklenerek, hiperparametre ayarı yapılarak model kademeli olarak geliştirildi.
 
 ## Özellik Mühendisliği
 
@@ -53,6 +53,7 @@ Ham veride yalnızca tüketim değeri vardı. Modelin öğrenebilmesi için aşa
 | `saat_sin`, `saat_cos` | Saatin döngüsel (sin/cos) kodlaması |
 | `ay_sin`, `ay_cos` | Ayın döngüsel (sin/cos) kodlaması |
 | `sicaklik` | Üç büyük şehrin ortalama saatlik sıcaklığı |
+| `tatil` | Resmi tatil / dini bayram günü mü? (0/1) |
 
 **Döngüsel kodlama neden?** Saat ve ay döngüsel değişkenlerdir (23:00'ten sonra 00:00, Aralık'tan sonra Ocak gelir). Düz sayı olarak verilirse model 23:00 ile 00:00'ı birbirine uzak sanar. Sin/cos dönüşümü, bu değerleri bir daire üzerine yerleştirerek komşuluk ilişkisini korur.
 
@@ -69,9 +70,13 @@ Ham veride yalnızca tüketim değeri vardı. Modelin öğrenebilmesi için aşa
 |---|---|---|---|---|
 | Temel model (sıcaklıksız, 500 ağaç) | 752 | 1.131 | %1.86 | 0.9704 |
 | + Sıcaklık | 697 | 1.038 | %1.73 | 0.9751 |
-| + Hiperparametre ayarı (final) | **667** | **995** | **%1.66** | **0.9771** |
+| + Hiperparametre ayarı | 667 | 995 | %1.66 | 0.9771 |
+| + Resmi tatil (final) | **655** | **962** | **%1.62** | **0.9786** |
 
-Sıcaklık özelliğinin eklenmesi RMSE'yi ~%8 iyileştirmiştir; iyileşme özellikle yaz aylarındaki tepe (klima kaynaklı) tüketim noktalarında belirgindir.
+Her iyileştirme adımı "sorun tespit et — çöz — ölç" döngüsüyle yapıldı:
+
+- **Sıcaklık**, RMSE'yi ~%8 iyileştirdi; iyileşme özellikle yaz aylarındaki tepe (klima kaynaklı) tüketim noktalarında belirgindir.
+- **Resmi tatil** özelliği, genel MAPE'yi az etkiler (tatiller verinin ~%4'ü), ancak bayram günlerindeki hatayı çarpıcı biçimde düşürür. Örneğin 29 Ekim 2025 (Cumhuriyet Bayramı) için o günkü hata **%5.95'ten %1.78'e** inmiştir — çünkü model artık tatil günlerinde tüketimin düştüğünü biliyor.
 
 ## Bulgular
 
@@ -96,31 +101,41 @@ Sıcaklık özelliğinin eklenmesi RMSE'yi ~%8 iyileştirmiştir; iyileşme öze
 - **Güçlü mevsimsellik:** Tüketim yaz (klima) ve kış (ısıtma) aylarında zirve yapar; geçiş mevsimlerinde düşer. Günlük döngüde gece dip, gündüz plato görülür. Hafta sonu tüketimi hafta içine göre belirgin düşüktür.
 - **Sıcaklık–tüketim ilişkisi U şeklindedir:** Hem düşük hem yüksek sıcaklıklarda tüketim artar. Doğrusal korelasyon (0.25) bu ilişkiyi yakalayamaz; ancak ağaç tabanlı model yakalayabilir. Yaz klima etkisi, kış etkisinden belirgin şekilde daha güçlüdür.
 - **En güçlü tahmin edici geçmiş tüketimdir:** `lag_24` ve `lag_168`, tüketimin güçlü günlük ve haftalık otokorelasyonu sayesinde modelin en değerli girdileridir.
-- **Modelin sınırı:** Sıcaklık eklenmeden önce model, aşırı sıcak günlerdeki tepe tüketimleri eksik tahmin ediyordu. Bu, hava bilgisinin eksikliğinden kaynaklanıyordu ve sıcaklık özelliğiyle giderildi.
+- **Modelin sınırı ve çözümü:** Sıcaklık eklenmeden önce model, aşırı sıcak günlerdeki tepe tüketimleri eksik tahmin ediyordu; bu sıcaklık özelliğiyle giderildi. Benzer şekilde model resmi tatilleri bilmediği için bayram günlerinde yüksek hata veriyordu; tatil özelliği bunu düzeltti.
+- **Tatil günleri farklı davranır:** Resmi tatil günlerinde ortalama tüketim (~29.300 MWh), normal günlerden (~35.900 MWh) yaklaşık **%18 daha düşüktür** — hafta sonu etkisinden bile güçlü.
 
 ## Kurulum ve Çalıştırma
 
 ```bash
 # Depoyu klonlayın
-git clone https://github.com/KULLANICI_ADI/turkey-electricity-forecast.git
+git clone https://github.com/mustafaadalan/turkey-electricity-forecast.git
 cd turkey-electricity-forecast
 
 # Gerekli kütüphaneleri kurun
 pip install -r requirements.txt
 
-# Notebook'u açın
+# Notebook'u açın (tüm analiz ve modelleme)
 jupyter notebook notebooks/elektrik_tuketim_tahmini.ipynb
+
+# veya interaktif demoyu çalıştırın
+streamlit run app.py
 ```
 
 Veriyi indirmek için [`data/README.md`](data/README.md) dosyasındaki adımları izleyin.
 
+## Demo
+
+Uygulama üç bölümden oluşur:
+- **Tahmin:** Test setinden bir gün seçilir; model o günün 24 saatini tahmin eder ve gerçek değerlerle karşılaştırılır.
+- **Model Performansı:** Genel metrikler ve seçilebilir dönemlerde tahmin-gerçek karşılaştırması.
+- **Veri Analizi:** Saatlik, haftalık ve sıcaklık bazlı tüketim örüntüleri.
+
 ## Gelecek İyileştirmeler
 
-- **Resmi tatil ve bayram günleri özelliği:** Bayramlarda tüketim belirgin düşer (ör. 2020 Ramazan Bayramı verideki en düşük değerlerden bazılarını içerir). Bir "tatil mi?" özelliği modeli güçlendirebilir.
-- **Çok adımlı tahmin:** Yalnızca bir sonraki saat yerine, önümüzdeki 24 saati tahmin etme.
+- **Çok adımlı tahmin:** Yalnızca bir sonraki saat yerine, önümüzdeki 24–48 saati birden tahmin etme.
 - **Ek hava değişkenleri:** Nem, rüzgâr, güneşlenme gibi değişkenlerin etkisi araştırılabilir.
 - **Model karşılaştırması / stacking:** XGBoost, CatBoost gibi modellerle karşılaştırma ve topluluk (ensemble) yöntemleri.
-- **Streamlit demo:** Modeli etkileşimli bir web arayüzüyle yayınlama.
+- **Özellik önemi analizi:** Modelin hangi özelliklere ne kadar dayandığının detaylı incelenmesi.
 
 ---
 
