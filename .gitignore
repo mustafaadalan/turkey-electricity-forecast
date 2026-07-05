@@ -24,3 +24,6 @@ desktop.ini
 # Editör dosyaları
 .vscode/
 .idea/
+!model/  
+!model/*.csv  
+!model/test_verisi.csv  

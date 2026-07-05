@@ -75,6 +75,24 @@ Sıcaklık özelliğinin eklenmesi RMSE'yi ~%8 iyileştirmiştir; iyileşme öze
 
 ## Bulgular
 
+![Genel Trend](images/genel_trend.png)
+
+*2015-2026 arası saatlik tüketim: belirgin yükseliş trendi, yıllık mevsimsellik ve 2020 (Covid) döneminde düşüş görülüyor.*
+
+![Aylık Mevsimsellik](images/mevsimsellik.png)
+
+*Aylara göre ortalama tüketim: yaz (klima) ve kış (ısıtma) aylarında zirve, geçiş mevsimlerinde düşüş.*
+
+![Sıcaklık-Tüketim İlişkisi](images/sicaklik_iliskisi.png)
+
+*Sıcaklık-tüketim ilişkisi U şeklindedir: hem soğukta hem sıcakta tüketim artar. Yaz klima etkisi daha güçlüdür.*
+
+![Tahmin vs Gerçek](images/tahmin_vs_gercek.png)
+
+*Final modelin test setindeki tahminleri (kırmızı) gerçek değerlerle (siyah) karşılaştırması — 2 haftalık kesit.*
+
+### Öne çıkan bulgular
+
 - **Güçlü mevsimsellik:** Tüketim yaz (klima) ve kış (ısıtma) aylarında zirve yapar; geçiş mevsimlerinde düşer. Günlük döngüde gece dip, gündüz plato görülür. Hafta sonu tüketimi hafta içine göre belirgin düşüktür.
 - **Sıcaklık–tüketim ilişkisi U şeklindedir:** Hem düşük hem yüksek sıcaklıklarda tüketim artar. Doğrusal korelasyon (0.25) bu ilişkiyi yakalayamaz; ancak ağaç tabanlı model yakalayabilir. Yaz klima etkisi, kış etkisinden belirgin şekilde daha güçlüdür.
 - **En güçlü tahmin edici geçmiş tüketimdir:** `lag_24` ve `lag_168`, tüketimin güçlü günlük ve haftalık otokorelasyonu sayesinde modelin en değerli girdileridir.
