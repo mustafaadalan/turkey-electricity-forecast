@@ -43,8 +43,8 @@ ozellikler = ozellik_yukle()
 # ---------------------------------------------------------------------------
 st.title("⚡ Türkiye Saatlik Elektrik Tüketim Tahmini")
 st.markdown(
-    "10 yıllık gerçek EPİAŞ verisi ve hava sıcaklığıyla eğitilmiş bir "
-    "**LightGBM** modeli. Test setinde **%1.66 MAPE** ve **0.977 R²**."
+    "10 yıllık gerçek EPİAŞ verisi, hava sıcaklığı ve resmi tatil bilgisiyle "
+    "eğitilmiş bir **LightGBM** modeli. Test setinde **%1.62 MAPE** ve **0.979 R²**."
 )
 
 # ---------------------------------------------------------------------------
